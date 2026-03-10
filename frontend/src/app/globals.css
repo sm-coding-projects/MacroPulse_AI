@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes shimmer-sweep {
+  0%   { transform: translateX(-100%) skewX(-12deg); }
+  100% { transform: translateX(300%)  skewX(-12deg); }
+}
+
+@layer utilities {
+  .dot-grid-bg {
+    background-image: radial-gradient(circle, rgba(148,163,184,0.25) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  .animate-shimmer-sweep {
+    animation: shimmer-sweep 1.6s ease-in-out infinite;
+  }
+}

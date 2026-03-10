@@ -1,128 +1,134 @@
-# MacroPulse AI — Claude Code Agent Build System
+# MacroPulse AI
 
-This repository contains the complete scaffolding for building MacroPulse AI using Claude Code's subagent delegation system. A single prompt orchestrates 6 specialized agents to build the entire application.
+A containerised web app that fetches live Australian Bureau of Statistics (ABS) Capital Expenditure data and provides AI-generated economic analysis. ABS data loads automatically — no API key required. Bring your own LLM key for the analysis feature.
 
-## What's Included
+**Stack:** Next.js 14 · FastAPI · SQLite · Docker Compose
 
-```
-macropulse-ai/
-├── CLAUDE.md                              # Project context (loaded every session)
-├── PROMPT.md                              # ← THE MASTER PROMPT (copy into Claude Code)
-├── docs/
-│   └── PRD.md                             # Full product requirements document
-├── .claude/
-│   ├── settings.json                      # Claude Code settings (enables agent teams)
-│   ├── agents/                            # 6 specialized subagents
-│   │   ├── scaffolder.md                  # Project structure, Docker, configs
-│   │   ├── backend-builder.md             # FastAPI, ABS client, LLM proxy, all services
-│   │   ├── frontend-shell.md              # Next.js layout, sidebar, settings, hooks, types
-│   │   ├── frontend-viz.md                # Recharts charts, analysis display, animations
-│   │   ├── test-writer.md                 # Pytest test suite with fixtures and mocks
-│   │   └── code-reviewer.md               # Read-only review (security, a11y, types, errors)
-│   └── skills/                            # Domain knowledge loaded on demand
-│       ├── abs-api/
-│       │   └── SKILL.md                   # ABS Indicator API reference + SDMX-JSON parsing
-│       └── project-conventions/
-│           └── SKILL.md                   # Coding patterns, naming, error handling style
-```
-
-## Agent Architecture
-
-```
-┌─────────────────────────────────────────────────┐
-│              YOU (Team Lead / Orchestrator)       │
-│              Runs the master prompt               │
-└──────────┬──────────┬──────────┬────────────────┘
-           │          │          │
-     Phase 1    Phase 2    Phase 3-4    Phase 5    Phase 6
-       │          │          │            │          │
-  ┌────▼───┐ ┌───▼────┐ ┌──▼───────┐ ┌──▼────┐ ┌──▼──────┐
-  │Scaffold│ │Backend │ │Frontend  │ │Test   │ │Code     │
-  │  er    │ │Builder │ │Shell+Viz │ │Writer │ │Reviewer │
-  └────────┘ └────────┘ └──────────┘ └───────┘ └─────────┘
-   Docker     FastAPI     Next.js      Pytest    Read-only
-   Configs    Services    Components   Suites    Audit
-              Routes      Hooks
-              Models      Charts
-```
-
-All agents use `model: sonnet` (Sonnet 4.6) for cost efficiency.
-
-## How to Use
-
-### 1. Install Claude Code
-```bash
-# If not already installed
-npm install -g @anthropic/claude-code
-```
-
-### 2. Clone / Set Up This Repo
-```bash
-cd macropulse-ai
-```
-
-### 3. Enable Agent Teams (optional, for future use)
-The `.claude/settings.json` already enables experimental agent teams. Subagents work without this flag, but if you want to try the full Agent Teams feature later, it's ready.
-
-### 4. Launch Claude Code
-```bash
-claude
-```
-
-### 5. Paste the Master Prompt
-Open `PROMPT.md`, copy everything below the `---` separator in the "The Prompt" section, and paste it into Claude Code. Claude will:
-
-1. **Phase 1:** Delegate to `scaffolder` → creates all project structure and Docker configs
-2. **Phase 2:** Delegate to `backend-builder` → builds entire FastAPI backend
-3. **Phase 3:** Delegate to `frontend-shell` → builds Next.js app shell, UI, hooks
-4. **Phase 4:** Delegate to `frontend-viz` → builds charts, analysis display
-5. **Phase 5:** Delegate to `test-writer` → creates comprehensive test suite
-6. **Phase 6:** Delegate to `code-reviewer` → read-only audit of everything
-7. **Phase 7:** Fixes any critical issues from the review
-
-### 6. Run the App
-After Claude finishes:
-```bash
-docker-compose up
-```
-Open `http://localhost:3000`
-
-## Model Selection Note
-
-All agents are configured with `model: sonnet` (Sonnet 4.6). This is a deliberate choice for:
-- **Cost efficiency:** Sonnet is significantly cheaper per token than Opus
-- **Speed:** Faster response times per agent
-- **Capability:** Sonnet 4.6 is more than capable for implementation tasks
-
-If you want to use Opus 4.6 for any agent (e.g., the code reviewer), edit the `model:` field in the relevant `.claude/agents/*.md` file.
-
-**Note on Agent Teams:** The full Agent Teams feature (peer-to-peer messaging, shared task lists) requires Opus 4.6 as of March 2026. The subagent approach used here works with any model and achieves similar parallel delegation without the coordination overhead.
-
-## Customization
-
-### Adding a New Agent
-Create a new file in `.claude/agents/`:
-```markdown
----
-name: my-agent
-description: What this agent does and when to invoke it
-model: sonnet
-tools: Bash, Read, Write, Edit
 ---
 
-Your agent's system prompt and instructions here.
+## Quick Start
+
+**Requirement:** [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+
+```bash
+git clone https://github.com/sm-coding-projects/MacroPulse_AI.git
+cd MacroPulse_AI
+cp .env.example .env
+docker compose up --build
 ```
 
-### Adding a New Skill
-Create a folder in `.claude/skills/` with a `SKILL.md`:
-```markdown
----
-name: my-skill
-description: When to use this skill
+Open **http://localhost:3000**
+
+That's it. ABS CapEx data is fetched automatically from the public ABS API on first load and cached for 24 hours.
+
 ---
 
-Reference documentation and instructions here.
+## AI Analysis (optional)
+
+To enable the AI-generated economic analysis, open **Settings** in the sidebar and enter your LLM details:
+
+| Field | Example |
+|-------|---------|
+| API Base URL | `https://api.openai.com/v1` |
+| API Key | Your OpenAI / Anthropic / other key |
+| Model | `gpt-4o`, `claude-opus-4-6`, `llama3`, etc. |
+
+Any OpenAI-compatible endpoint works, including local models via [Ollama](https://ollama.com) (`http://host.docker.internal:11434/v1`).
+
+Your API key is stored only in your browser and is never persisted on the server.
+
+---
+
+## Stopping & Data
+
+```bash
+# Stop containers
+docker compose down
+
+# Stop and delete all cached data
+docker compose down -v
 ```
 
-### Modifying the Build
-Edit `PROMPT.md` to add/remove phases or change the build order. Each phase is independent — you can re-run individual phases by pasting just that section.
+ABS data is cached in a Docker volume (`db-data`) and survives restarts.
+
+---
+
+## Configuration
+
+All config lives in `.env` (copied from `.env.example`):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `FRONTEND_PORT` | `3000` | Port for the web UI |
+| `BACKEND_PORT` | `8000` | Port for the FastAPI backend |
+| `DATABASE_PATH` | `/data/macropulse.db` | SQLite database path inside the container |
+
+---
+
+## Architecture
+
+```
+┌─────────────────────────────┐      ┌──────────────────────────────┐
+│  Frontend (Next.js / :3000) │ ───► │  Backend (FastAPI / :8000)   │
+│                             │      │                              │
+│  · Recharts line + bar      │      │  · ABS SDMX-JSON client      │
+│  · AI analysis display      │      │  · Pandas data processing    │
+│  · shadcn/ui components     │      │  · SQLite 24-hr cache        │
+│  · Framer Motion animations │      │  · LLM proxy (SSE streaming) │
+└─────────────────────────────┘      └──────────────────────────────┘
+                                                  │
+                                     ┌────────────▼─────────────┐
+                                     │  ABS Indicator API       │
+                                     │  (api.data.abs.gov.au)   │
+                                     │  Catalogue No. 5625.0    │
+                                     └──────────────────────────┘
+```
+
+---
+
+## Development
+
+The backend mounts the source directory as a volume, so edits to `backend/app/` apply immediately without rebuilding.
+
+Frontend changes require a rebuild:
+
+```bash
+docker compose up --build frontend
+```
+
+Run backend tests:
+
+```bash
+docker exec macropulse-ai-backend-1 python -m pytest backend/tests/ -v
+```
+
+---
+
+## Project Structure
+
+```
+MacroPulse_AI/
+├── docker-compose.yml
+├── .env.example
+├── frontend/
+│   ├── Dockerfile
+│   └── src/
+│       ├── app/              # Next.js App Router pages
+│       ├── components/       # UI components + charts
+│       ├── hooks/            # useCapExData, useSettings
+│       └── lib/              # API client, types, utils
+└── backend/
+    ├── Dockerfile
+    ├── requirements.txt
+    └── app/
+        ├── routers/          # /api/data/capex, /api/analyze
+        ├── services/         # ABS client, data processor, LLM proxy, cache
+        ├── models/           # Pydantic schemas
+        └── prompts/          # LLM prompt templates
+```
+
+---
+
+## Built With Claude Code
+
+This project was built using [Claude Code](https://claude.ai/claude-code) and its subagent delegation system. A single orchestration prompt delegated work across 6 specialised agents (scaffolder, backend-builder, frontend-shell, frontend-viz, test-writer, code-reviewer) running in parallel.
